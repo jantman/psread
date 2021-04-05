@@ -3,6 +3,8 @@ psread
 
 Quick, simple AWS Parameter Store CLI for listing/reading params with tab completion
 
+
+
 Background
 ----------
 
@@ -40,14 +42,47 @@ Usage
 
 There are two main functionalities: listing parameters and reading parameters. Shell tab completion is included, primarily for **bash**, via the `argcomplete <https://pypi.org/project/argcomplete/>`__ package.
 
+.. code-block:: bash
+
+    $ psread -h
+    usage: psread [-h] [-v] [-w] [-V] [-R] [--called-from-wrapper] [{ls,list,read,get}] [PARAM]
+
+    Quick, simple AWS Parameter Store CLI for listing/reading params with tab completion
+
+    positional arguments:
+      {ls,read,get}         Action to perform
+      PARAM                 Parameter (or parameter path) to list or read
+
+    optional arguments:
+      -h, --help            show this help message and exit
+      -v, --verbose         verbose output. specify twice for debug-level output.
+      -w, --bash-wrapper    print bash wrapper function to STDOUT and exit
+      -V, --version         Print version number and exit
+      -R, --recache         re-cache parameters for this region of this account
+      --called-from-wrapper
+                            DO NOT USE
+
 Parameter Caching
 +++++++++++++++++
 
-``PSREAD_CACHE_PATH`` defaults to ``psread.pkl`` within your platform-specific user cache directory (your cache file path is included in the ``psread -V`` output).
+psread caches the Names (and only the names) of all parameters in each region of each account that you use it with; this is effectively required for sane tab-completion speeds. The parameters are cached in a Pickle file at a platform-specific path, which can be seen in the ``psread -V`` output. This path can be overridden with the ``PSREAD_CACHE_PATH`` environment variable, which should specify the absolute path to write the pkl file at.
 
-``PSREAD_CACHE_TTL`` in seconds; defaults to 86400 (1 day).
+By default, parameter names are cached for 86400 seconds (1 day); this can be overridden by setting the ``PSREAD_CACHE_TTL`` environment variable to an integer cache TTL in seconds.
+
+Re-caching of the current region of the current account can be forced by running psread with the ``-R`` or ``--recache`` option.
 
 Debugging
 ---------
 
-``export PSREAD_LOG=DEBUG``
+In order to enable debug logging before normal command-line options and arguments are parsed, such as during tab completion: ``export PSREAD_LOG=DEBUG``
+
+Release Process
+---------------
+
+Completely manual right now:
+
+1. Bump the version in ``psread.py`` and update the Changelog.
+2. ``python setup.py sdist && python setup.py bdist_wheel``
+3. ``twine upload dist/*``
+4. ``git push``
+5. ``git tag -s -a X.Y.Z -m 'X.Y.Z released YYYY-mm-dd' && git tag -v X.Y.Z && git push origin X.Y.Z``

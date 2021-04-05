@@ -55,7 +55,7 @@ FORMAT: str = "[%(asctime)s %(levelname)s] %(message)s"
 logging.basicConfig(level=logging.WARNING, format=FORMAT)
 logger: logging.Logger = logging.getLogger()
 
-VERSION: str = '0.1.0'
+VERSION: str = '0.1.1'
 PROJECT_URL: str = 'https://github.com/jantman/psread'
 CACHE_DIR: str = os.path.join(
     user_cache_dir('psread', 'jantman'), 'psread.pkl'
@@ -125,7 +125,7 @@ class PSClient:
     def complete_actions(self, **kwargs: dict) -> List[str]:
         if kwargs['action'].dest != 'ACTION':
             return []
-        return ['ls', 'list', 'read', 'get']
+        return ['ls', 'read', 'get']
 
     def complete_params(self, **kwargs: dict) -> List[str]:
         if kwargs['action'].dest != 'PARAM':
@@ -249,7 +249,7 @@ def parse_args(client) -> argparse.Namespace:
                    action='store_true', default=False, help='DO NOT USE')
     p.add_argument(
         'ACTION', action='store', type=str, default=None, nargs='?',
-        help='Action to perform', choices=['ls', 'list', 'read', 'get']
+        help='Action to perform', choices=['ls', 'read', 'get']
     ).completer = client.complete_actions
     p.add_argument(
         'PARAM', action='store', type=str, default=None,
