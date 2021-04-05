@@ -3,7 +3,9 @@ psread
 
 Quick, simple AWS Parameter Store CLI for listing/reading params with tab completion
 
-
+.. image:: asciinema.gif
+  :width: 590
+  :alt: screen recording of psread usage example
 
 Background
 ----------
