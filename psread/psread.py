@@ -108,6 +108,8 @@ class PSClient:
             'Connected to account %s region %s',
             self._acct_id, self._region
         )
+        logger.debug('Connecting to SSM')
+        self._ssm = boto3.client('ssm')
         self._cache_path = os.environ.get('PSREAD_CACHE_PATH', CACHE_DIR)
         logger.debug('Cache path: %s', self._cache_path)
         self._params = self._load_cache()
@@ -123,7 +125,7 @@ class PSClient:
     def complete_actions(self, **kwargs: dict) -> List[str]:
         if kwargs['action'].dest != 'ACTION':
             return []
-        return ['ls', 'list', 'read']
+        return ['ls', 'list', 'read', 'get']
 
     def complete_params(self, **kwargs: dict) -> List[str]:
         if kwargs['action'].dest != 'PARAM':
@@ -176,11 +178,9 @@ class PSClient:
         return cache[self._acct_id][self._region]['params']
 
     def _get_param_names(self) -> List[str]:
-        logger.debug('Connecting to SSM')
-        client = boto3.client('ssm')
         result: Set[str] = set()
         logger.debug('Paginating DescribeParameters')
-        paginator = client.get_paginator('describe_parameters')
+        paginator = self._ssm.get_paginator('describe_parameters')
         for page in paginator.paginate():
             for param in page['Parameters']:
                 result.add(param['Name'])
@@ -194,7 +194,19 @@ class PSClient:
             print(p)
 
     def do_read(self, param: str):
-        raise NotImplementedError(f'do_read({param})')
+        if not param.endswith('/'):
+            p = self._ssm.get_parameter(Name=param, WithDecryption=True)
+            print(f'{param}\t{p["Parameter"]["Value"]}')
+            return
+        paginator = self._ssm.get_paginator('get_parameters_by_path')
+        result = {}
+        for page in paginator.paginate(
+            Path=param, Recursive=False, WithDecryption=True, MaxResults=10
+        ):
+            for p in page['Parameters']:
+                result[p['Name']] = p['Value']
+        for k, v in sorted(result.items()):
+            print(f'{k}\t{v}')
 
 
 def bash_wrapper() -> str:
@@ -237,11 +249,11 @@ def parse_args(client) -> argparse.Namespace:
                    action='store_true', default=False, help='DO NOT USE')
     p.add_argument(
         'ACTION', action='store', type=str, default=None, nargs='?',
-        help='Action to perform', choices=['ls', 'list', 'read']
+        help='Action to perform', choices=['ls', 'list', 'read', 'get']
     ).completer = client.complete_actions
     p.add_argument(
         'PARAM', action='store', type=str, default=None,
-        help='Parameter (or parameter path) to read', nargs='?'
+        help='Parameter (or parameter path) to list or read', nargs='?'
     ).completer = client.complete_params
     argcomplete.autocomplete(p, always_complete_options=False)
     args = p.parse_args()
@@ -298,7 +310,7 @@ def main():
         raise SystemExit(1)
     if args.recache:
         client._load_cache(recache=True)
-    if args.ACTION == 'read':
+    if args.ACTION in ['read', 'get']:
         client.do_read(args.PARAM)
     else:
         client.do_list(args.PARAM)
