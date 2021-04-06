@@ -55,7 +55,7 @@ FORMAT: str = "[%(asctime)s %(levelname)s] %(message)s"
 logging.basicConfig(level=logging.WARNING, format=FORMAT)
 logger: logging.Logger = logging.getLogger()
 
-VERSION: str = '0.1.1'
+VERSION: str = '0.1.2'
 PROJECT_URL: str = 'https://github.com/jantman/psread'
 CACHE_DIR: str = os.path.join(
     user_cache_dir('psread', 'jantman'), 'psread.pkl'
@@ -298,6 +298,9 @@ def set_log_level_format(l: logging.Logger, level: int, format: str):
 def main():
     if os.environ.get('PSREAD_LOG') == 'DEBUG':
         set_log_debug(logger)
+    if '--bash-wrapper' in sys.argv:
+        sys.stdout.write(bash_wrapper())
+        raise SystemExit(1)
     client: PSClient = PSClient()
     args: argparse.Namespace = parse_args(client)
     # set logging level
